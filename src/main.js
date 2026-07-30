@@ -24,6 +24,9 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
+  input: {
+    activePointers: 3, // Enable multi-touch (up to 3 fingers)
+  },
   scene: [BootScene, MenuScene, AvatarScene, GameScene, WinScene],
 };
 

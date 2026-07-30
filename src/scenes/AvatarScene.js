@@ -77,8 +77,8 @@ export class AvatarScene extends Phaser.Scene {
         align: 'center',
       }).setOrigin(0.5);
 
-      // Interactive area
-      const hitArea = this.add.rectangle(x, avatarY + 10, 100, 180)
+      // Interactive area - generous tap target for mobile
+      const hitArea = this.add.rectangle(x, avatarY + 10, 120, 200)
         .setInteractive({ useHandCursor: true });
 
       hitArea.on('pointerover', () => {
@@ -100,19 +100,25 @@ export class AvatarScene extends Phaser.Scene {
       });
     }
 
-    // GO button (hidden until avatar selected)
+    // GO button (hidden until avatar selected) - bigger for mobile
+    const goBtnW = 200;
+    const goBtnH = 58;
+    const goBtnX = width / 2 - goBtnW / 2;
+    const goBtnTopY = 475;
+    const goBtnCY = goBtnTopY + goBtnH / 2;
+
     this.goBtnBg = this.add.graphics();
     this.goBtnBg.fillStyle(0x69F0AE, 1);
-    this.goBtnBg.fillRoundedRect(width / 2 - 80, 480, 160, 50, 10);
+    this.goBtnBg.fillRoundedRect(goBtnX, goBtnTopY, goBtnW, goBtnH, 12);
     this.goBtnBg.setAlpha(0);
 
-    this.goText = this.add.text(width / 2, 505, 'GO!', {
+    this.goText = this.add.text(width / 2, goBtnCY, 'GO!', {
       fontFamily: 'Arial Black, Arial',
-      fontSize: '28px',
+      fontSize: '30px',
       color: '#1B5E20',
     }).setOrigin(0.5).setAlpha(0);
 
-    this.goHitArea = this.add.rectangle(width / 2, 505, 160, 50)
+    this.goHitArea = this.add.rectangle(width / 2, goBtnCY, goBtnW, goBtnH)
       .setInteractive({ useHandCursor: true })
       .setAlpha(0);
 
@@ -120,7 +126,7 @@ export class AvatarScene extends Phaser.Scene {
       if (this.selectedAvatar !== null) {
         this.goBtnBg.clear();
         this.goBtnBg.fillStyle(0x00E676, 1);
-        this.goBtnBg.fillRoundedRect(width / 2 - 80, 480, 160, 50, 10);
+        this.goBtnBg.fillRoundedRect(goBtnX, goBtnTopY, goBtnW, goBtnH, 12);
       }
     });
 
@@ -128,7 +134,7 @@ export class AvatarScene extends Phaser.Scene {
       if (this.selectedAvatar !== null) {
         this.goBtnBg.clear();
         this.goBtnBg.fillStyle(0x69F0AE, 1);
-        this.goBtnBg.fillRoundedRect(width / 2 - 80, 480, 160, 50, 10);
+        this.goBtnBg.fillRoundedRect(goBtnX, goBtnTopY, goBtnW, goBtnH, 12);
       }
     });
 

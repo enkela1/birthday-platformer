@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Happy Birthday Daors!</title>
   <style>
     * {
@@ -15,6 +15,12 @@
       height: 100%;
       overflow: hidden;
       background: #1a1a2e;
+      /* Prevent pull-to-refresh and overscroll on mobile */
+      overscroll-behavior: none;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
     #game-container {
       width: 100%;
@@ -28,10 +34,59 @@
       image-rendering: auto;
       image-rendering: smooth;
       image-rendering: high-quality;
+      /* Prevent double-tap zoom on canvas */
+      touch-action: none;
+    }
+
+    /* --- Rotate prompt for portrait mobile --- */
+    #rotate-prompt {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: #1a1a2e;
+      color: #fff;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 32px;
+    }
+    #rotate-prompt .icon {
+      font-size: 64px;
+      animation: wiggle 1.5s ease-in-out infinite;
+    }
+    #rotate-prompt h2 {
+      font-size: 22px;
+      color: #FFD700;
+      margin: 0;
+    }
+    #rotate-prompt p {
+      font-size: 15px;
+      color: #B39DDB;
+      margin: 0;
+      max-width: 260px;
+    }
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(20deg); }
+      75% { transform: rotate(-20deg); }
+    }
+    /* Show only on mobile portrait */
+    @media (orientation: portrait) and (max-width: 900px) and (hover: none) {
+      #rotate-prompt { display: flex; }
+      #game-container { display: none; }
     }
   </style>
 </head>
 <body>
+  <div id="rotate-prompt">
+    <div class="icon">📱</div>
+    <h2>Rotate Your Phone</h2>
+    <p>This game plays best in landscape mode. Turn your phone sideways!</p>
+  </div>
   <div id="game-container"></div>
   <script type="module" src="/src/main.js"></script>
 </body>

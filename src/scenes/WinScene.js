@@ -187,17 +187,21 @@ export class WinScene extends Phaser.Scene {
       delay: 2800,
     });
 
-    // ===== PLAY AGAIN BUTTON =====
+    // ===== PLAY AGAIN BUTTON - bigger for mobile =====
     const btnY = 510;
+    const rBtnW = 220;
+    const rBtnH = 54;
+    const rBtnX = width / 2 - rBtnW / 2;
+    const rBtnTopY = btnY - rBtnH / 2;
     const btnBg = this.add.graphics();
     btnBg.fillStyle(0xFF4081, 1);
-    btnBg.fillRoundedRect(width / 2 - 90, btnY - 22, 180, 44, 10);
+    btnBg.fillRoundedRect(rBtnX, rBtnTopY, rBtnW, rBtnH, 12);
     btnBg.lineStyle(2, 0xFFFFFF, 0.5);
-    btnBg.strokeRoundedRect(width / 2 - 90, btnY - 22, 180, 44, 10);
+    btnBg.strokeRoundedRect(rBtnX, rBtnTopY, rBtnW, rBtnH, 12);
 
     const btnText = this.add.text(width / 2, btnY, 'Play Again?', {
       fontFamily: 'Arial Black, Arial',
-      fontSize: '20px',
+      fontSize: '22px',
       color: '#FFFFFF',
     }).setOrigin(0.5);
 
@@ -211,23 +215,23 @@ export class WinScene extends Phaser.Scene {
       delay: 4000,
     });
 
-    const btnHit = this.add.rectangle(width / 2, btnY, 180, 44)
+    const btnHit = this.add.rectangle(width / 2, btnY, rBtnW, rBtnH)
       .setInteractive({ useHandCursor: true }).setAlpha(0.01);
 
     btnHit.on('pointerover', () => {
       btnBg.clear();
       btnBg.fillStyle(0xE91E63, 1);
-      btnBg.fillRoundedRect(width / 2 - 90, btnY - 22, 180, 44, 10);
+      btnBg.fillRoundedRect(rBtnX, rBtnTopY, rBtnW, rBtnH, 12);
       btnBg.lineStyle(2, 0xFFFFFF, 0.8);
-      btnBg.strokeRoundedRect(width / 2 - 90, btnY - 22, 180, 44, 10);
+      btnBg.strokeRoundedRect(rBtnX, rBtnTopY, rBtnW, rBtnH, 12);
     });
 
     btnHit.on('pointerout', () => {
       btnBg.clear();
       btnBg.fillStyle(0xFF4081, 1);
-      btnBg.fillRoundedRect(width / 2 - 90, btnY - 22, 180, 44, 10);
+      btnBg.fillRoundedRect(rBtnX, rBtnTopY, rBtnW, rBtnH, 12);
       btnBg.lineStyle(2, 0xFFFFFF, 0.5);
-      btnBg.strokeRoundedRect(width / 2 - 90, btnY - 22, 180, 44, 10);
+      btnBg.strokeRoundedRect(rBtnX, rBtnTopY, rBtnW, rBtnH, 12);
     });
 
     btnHit.on('pointerdown', () => {

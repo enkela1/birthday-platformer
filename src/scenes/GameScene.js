@@ -515,68 +515,101 @@ export class GameScene extends Phaser.Scene {
   }
 
   createTouchControls() {
-    // Simple touch zones for mobile
+    if (!this.sys.game.device.input.touch) return;
+
     const { width, height } = this.cameras.main;
 
-    // Left button
-    this.touchLeft = this.add.graphics();
-    this.touchLeft.fillStyle(0x000000, 0.2);
-    this.touchLeft.fillRoundedRect(20, height - 80, 60, 60, 10);
-    this.touchLeft.setScrollFactor(0).setDepth(100).setAlpha(0);
+    // --- Button sizing: generous tap targets with clear spacing ---
+    const btnW = 80;
+    const btnH = 70;
+    const gap = 16;
+    const bottomPad = 10;
+    const leftX = 20;
+    const rightX = leftX + btnW + gap;
+    const jumpX = width - btnW - 20;
+    const btnY = height - btnH - bottomPad;
 
-    const leftText = this.add.text(50, height - 50, '◀', {
-      fontSize: '28px', color: '#FFFFFF',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0);
+    // Helper: draw a rounded button
+    const drawBtn = (gfx, x, y, w, h, pressed) => {
+      gfx.clear();
+      gfx.fillStyle(pressed ? 0xFFFFFF : 0x000000, pressed ? 0.35 : 0.3);
+      gfx.fillRoundedRect(x, y, w, h, 14);
+      gfx.lineStyle(2, 0xFFFFFF, pressed ? 0.6 : 0.25);
+      gfx.strokeRoundedRect(x, y, w, h, 14);
+    };
+
+    // Left button
+    this.touchLeftGfx = this.add.graphics().setScrollFactor(0).setDepth(100);
+    drawBtn(this.touchLeftGfx, leftX, btnY, btnW, btnH, false);
+    const leftText = this.add.text(leftX + btnW / 2, btnY + btnH / 2, '◀', {
+      fontSize: '36px', color: '#FFFFFF',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0.8);
 
     // Right button
-    this.touchRight = this.add.graphics();
-    this.touchRight.fillStyle(0x000000, 0.2);
-    this.touchRight.fillRoundedRect(90, height - 80, 60, 60, 10);
-    this.touchRight.setScrollFactor(0).setDepth(100).setAlpha(0);
+    this.touchRightGfx = this.add.graphics().setScrollFactor(0).setDepth(100);
+    drawBtn(this.touchRightGfx, rightX, btnY, btnW, btnH, false);
+    const rightText = this.add.text(rightX + btnW / 2, btnY + btnH / 2, '▶', {
+      fontSize: '36px', color: '#FFFFFF',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0.8);
 
-    const rightText = this.add.text(120, height - 50, '▶', {
-      fontSize: '28px', color: '#FFFFFF',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0);
+    // Jump button (larger)
+    const jumpW = 90;
+    const jumpH = 70;
+    const jumpBtnX = width - jumpW - 20;
+    this.touchJumpGfx = this.add.graphics().setScrollFactor(0).setDepth(100);
+    drawBtn(this.touchJumpGfx, jumpBtnX, btnY, jumpW, jumpH, false);
+    const jumpText = this.add.text(jumpBtnX + jumpW / 2, btnY + jumpH / 2, '▲', {
+      fontSize: '36px', color: '#FFFFFF',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0.8);
 
-    // Jump button
-    this.touchJump = this.add.graphics();
-    this.touchJump.fillStyle(0x000000, 0.2);
-    this.touchJump.fillRoundedRect(width - 90, height - 80, 70, 60, 10);
-    this.touchJump.setScrollFactor(0).setDepth(100).setAlpha(0);
+    // --- Multi-touch via scene-level pointer tracking ---
+    // Instead of per-zone events (which break multi-touch), track all active pointers
+    this._touchBtns = [
+      { x: leftX, y: btnY, w: btnW, h: btnH, key: 'left', gfx: this.touchLeftGfx },
+      { x: rightX, y: btnY, w: btnW, h: btnH, key: 'right', gfx: this.touchRightGfx },
+      { x: jumpBtnX, y: btnY, w: jumpW, h: jumpH, key: 'jump', gfx: this.touchJumpGfx },
+    ];
 
-    const jumpText = this.add.text(width - 55, height - 50, '▲', {
-      fontSize: '28px', color: '#FFFFFF',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0);
+    // Phaser needs multi-touch enabled
+    this.input.addPointer(2); // support up to 3 simultaneous touches
 
-    // Show touch controls on mobile
-    if (this.sys.game.device.input.touch) {
-      [this.touchLeft, this.touchRight, this.touchJump, leftText, rightText, jumpText]
-        .forEach(el => el.setAlpha(1));
+    // We'll poll active pointers each frame in update() instead of using
+    // per-zone events, which is more reliable for multi-touch.
+    this._drawBtn = drawBtn;
+  }
 
-      // Touch input zones
-      this.touchLeftZone = this.add.rectangle(50, height - 50, 60, 60)
-        .setScrollFactor(0).setDepth(102).setInteractive().setAlpha(0.01);
-      this.touchRightZone = this.add.rectangle(120, height - 50, 60, 60)
-        .setScrollFactor(0).setDepth(102).setInteractive().setAlpha(0.01);
-      this.touchJumpZone = this.add.rectangle(width - 55, height - 50, 70, 60)
-        .setScrollFactor(0).setDepth(102).setInteractive().setAlpha(0.01);
+  // Call this from update() to poll touch buttons
+  _updateTouchInput() {
+    if (!this._touchBtns) return;
 
-      this.isTouchingLeft = false;
-      this.isTouchingRight = false;
-      this.isTouchingJump = false;
+    const pointers = [this.input.pointer1, this.input.pointer2, this.input.pointer3];
 
-      this.touchLeftZone.on('pointerdown', () => { this.isTouchingLeft = true; });
-      this.touchLeftZone.on('pointerup', () => { this.isTouchingLeft = false; });
-      this.touchLeftZone.on('pointerout', () => { this.isTouchingLeft = false; });
+    let left = false, right = false, jump = false;
 
-      this.touchRightZone.on('pointerdown', () => { this.isTouchingRight = true; });
-      this.touchRightZone.on('pointerup', () => { this.isTouchingRight = false; });
-      this.touchRightZone.on('pointerout', () => { this.isTouchingRight = false; });
+    for (const ptr of pointers) {
+      if (!ptr || !ptr.isDown) continue;
+      // Phaser pointer.x/y are already in game coordinates (accounting for scale)
+      const px = ptr.x;
+      const py = ptr.y;
 
-      this.touchJumpZone.on('pointerdown', () => { this.isTouchingJump = true; });
-      this.touchJumpZone.on('pointerup', () => { this.isTouchingJump = false; });
-      this.touchJumpZone.on('pointerout', () => { this.isTouchingJump = false; });
+      for (const btn of this._touchBtns) {
+        if (px >= btn.x && px <= btn.x + btn.w && py >= btn.y && py <= btn.y + btn.h) {
+          if (btn.key === 'left') left = true;
+          if (btn.key === 'right') right = true;
+          if (btn.key === 'jump') jump = true;
+        }
+      }
     }
+
+    // Update visual feedback
+    for (const btn of this._touchBtns) {
+      const pressed = (btn.key === 'left' && left) || (btn.key === 'right' && right) || (btn.key === 'jump' && jump);
+      this._drawBtn(btn.gfx, btn.x, btn.y, btn.w, btn.h, pressed);
+    }
+
+    this.isTouchingLeft = left;
+    this.isTouchingRight = right;
+    this.isTouchingJump = jump;
   }
 
   createPolaroidOverlay() {
@@ -606,10 +639,12 @@ export class GameScene extends Phaser.Scene {
       wordWrap: { width: 300 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(202).setAlpha(0);
 
-    // "Tap to continue" text
-    this.polaroidHint = this.add.text(width / 2, height / 2 + 180, 'Press any key to continue', {
+    // "Tap to continue" text - adaptive for mobile
+    const isMobile = this.sys.game.device.input.touch;
+    this.polaroidHint = this.add.text(width / 2, height / 2 + 180,
+      isMobile ? 'Tap to continue' : 'Press any key to continue', {
       fontFamily: 'Arial',
-      fontSize: '12px',
+      fontSize: '14px',
       color: '#AAAAAA',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(202).setAlpha(0);
 
@@ -1360,6 +1395,9 @@ export class GameScene extends Phaser.Scene {
   // ==========================================
 
   update() {
+    // Poll touch buttons every frame (multi-touch safe)
+    this._updateTouchInput();
+
     if (this.isPaused) return;
 
     // --- Player movement ---
