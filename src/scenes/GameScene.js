@@ -519,97 +519,149 @@ export class GameScene extends Phaser.Scene {
 
     const { width, height } = this.cameras.main;
 
-    // --- Button sizing: generous tap targets with clear spacing ---
-    const btnW = 80;
-    const btnH = 70;
-    const gap = 16;
-    const bottomPad = 10;
-    const leftX = 20;
-    const rightX = leftX + btnW + gap;
-    const jumpX = width - btnW - 20;
-    const btnY = height - btnH - bottomPad;
+    // Enable multi-touch
+    this.input.addPointer(2);
 
-    // Helper: draw a rounded button
-    const drawBtn = (gfx, x, y, w, h, pressed) => {
-      gfx.clear();
-      gfx.fillStyle(pressed ? 0xFFFFFF : 0x000000, pressed ? 0.35 : 0.3);
-      gfx.fillRoundedRect(x, y, w, h, 14);
-      gfx.lineStyle(2, 0xFFFFFF, pressed ? 0.6 : 0.25);
-      gfx.strokeRoundedRect(x, y, w, h, 14);
+    // =============================================
+    // LEFT SIDE — Virtual joystick (Nintendo-style)
+    // =============================================
+    const stickBaseRadius = 50;
+    const stickKnobRadius = 24;
+    const stickCX = 80;                       // center of joystick base
+    const stickCY = height - 70;
+    const stickMaxDrag = 36;                   // max distance knob can move from center
+    const stickDeadzone = 8;                   // ignore tiny movements
+
+    // Base ring (outer circle)
+    this._joystickBase = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this._joystickBase.fillStyle(0x000000, 0.2);
+    this._joystickBase.fillCircle(stickCX, stickCY, stickBaseRadius);
+    this._joystickBase.lineStyle(2, 0xFFFFFF, 0.2);
+    this._joystickBase.strokeCircle(stickCX, stickCY, stickBaseRadius);
+
+    // Knob (inner draggable circle)
+    this._joystickKnob = this.add.graphics().setScrollFactor(0).setDepth(101);
+    this._drawKnob(stickCX, stickCY, false);
+
+    // Store joystick config
+    this._stick = {
+      cx: stickCX, cy: stickCY,
+      maxDrag: stickMaxDrag,
+      deadzone: stickDeadzone,
+      baseRadius: stickBaseRadius,
+      knobRadius: stickKnobRadius,
+      activePointer: null,      // which pointer ID is dragging
+      dx: 0,                    // current displacement (-1 to 1)
     };
 
-    // Left button
-    this.touchLeftGfx = this.add.graphics().setScrollFactor(0).setDepth(100);
-    drawBtn(this.touchLeftGfx, leftX, btnY, btnW, btnH, false);
-    const leftText = this.add.text(leftX + btnW / 2, btnY + btnH / 2, '◀', {
-      fontSize: '36px', color: '#FFFFFF',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0.8);
+    // =============================================
+    // RIGHT SIDE — Jump button (circle, like a face button)
+    // =============================================
+    const jumpRadius = 38;
+    const jumpCX = width - 65;
+    const jumpCY = height - 70;
 
-    // Right button
-    this.touchRightGfx = this.add.graphics().setScrollFactor(0).setDepth(100);
-    drawBtn(this.touchRightGfx, rightX, btnY, btnW, btnH, false);
-    const rightText = this.add.text(rightX + btnW / 2, btnY + btnH / 2, '▶', {
-      fontSize: '36px', color: '#FFFFFF',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0.8);
+    this._jumpBtnGfx = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this._drawJumpBtn(jumpCX, jumpCY, jumpRadius, false);
 
-    // Jump button (larger)
-    const jumpW = 90;
-    const jumpH = 70;
-    const jumpBtnX = width - jumpW - 20;
-    this.touchJumpGfx = this.add.graphics().setScrollFactor(0).setDepth(100);
-    drawBtn(this.touchJumpGfx, jumpBtnX, btnY, jumpW, jumpH, false);
-    const jumpText = this.add.text(jumpBtnX + jumpW / 2, btnY + jumpH / 2, '▲', {
-      fontSize: '36px', color: '#FFFFFF',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0.8);
+    this._jumpLabel = this.add.text(jumpCX, jumpCY, 'JUMP', {
+      fontFamily: 'Arial Black, Arial',
+      fontSize: '14px',
+      color: '#FFFFFF',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setAlpha(0.7);
 
-    // --- Multi-touch via scene-level pointer tracking ---
-    // Instead of per-zone events (which break multi-touch), track all active pointers
-    this._touchBtns = [
-      { x: leftX, y: btnY, w: btnW, h: btnH, key: 'left', gfx: this.touchLeftGfx },
-      { x: rightX, y: btnY, w: btnW, h: btnH, key: 'right', gfx: this.touchRightGfx },
-      { x: jumpBtnX, y: btnY, w: jumpW, h: jumpH, key: 'jump', gfx: this.touchJumpGfx },
-    ];
+    this._jumpBtn = {
+      cx: jumpCX, cy: jumpCY,
+      radius: jumpRadius + 10,  // generous hit area
+    };
 
-    // Phaser needs multi-touch enabled
-    this.input.addPointer(2); // support up to 3 simultaneous touches
-
-    // We'll poll active pointers each frame in update() instead of using
-    // per-zone events, which is more reliable for multi-touch.
-    this._drawBtn = drawBtn;
+    this._touchEnabled = true;
   }
 
-  // Call this from update() to poll touch buttons
+  _drawKnob(x, y, pressed) {
+    const r = 24;
+    this._joystickKnob.clear();
+    this._joystickKnob.fillStyle(pressed ? 0xFFFFFF : 0xCCCCCC, pressed ? 0.6 : 0.4);
+    this._joystickKnob.fillCircle(x, y, r);
+    this._joystickKnob.lineStyle(2, 0xFFFFFF, pressed ? 0.7 : 0.3);
+    this._joystickKnob.strokeCircle(x, y, r);
+  }
+
+  _drawJumpBtn(cx, cy, r, pressed) {
+    this._jumpBtnGfx.clear();
+    this._jumpBtnGfx.fillStyle(pressed ? 0xFFFFFF : 0x000000, pressed ? 0.4 : 0.25);
+    this._jumpBtnGfx.fillCircle(cx, cy, r);
+    this._jumpBtnGfx.lineStyle(2, 0xFFFFFF, pressed ? 0.6 : 0.25);
+    this._jumpBtnGfx.strokeCircle(cx, cy, r);
+  }
+
+  // Called every frame from update()
   _updateTouchInput() {
-    if (!this._touchBtns) return;
+    if (!this._touchEnabled) return;
 
     const pointers = [this.input.pointer1, this.input.pointer2, this.input.pointer3];
+    const stick = this._stick;
+    const jump = this._jumpBtn;
 
-    let left = false, right = false, jump = false;
+    let stickActive = false;
+    let jumpPressed = false;
 
+    // Check which pointers are doing what
     for (const ptr of pointers) {
       if (!ptr || !ptr.isDown) continue;
-      // Phaser pointer.x/y are already in game coordinates (accounting for scale)
       const px = ptr.x;
       const py = ptr.y;
 
-      for (const btn of this._touchBtns) {
-        if (px >= btn.x && px <= btn.x + btn.w && py >= btn.y && py <= btn.y + btn.h) {
-          if (btn.key === 'left') left = true;
-          if (btn.key === 'right') right = true;
-          if (btn.key === 'jump') jump = true;
+      // --- Joystick: check using where finger first touched (downX) ---
+      // so dragging past center doesn't lose the joystick
+      const startX = ptr.downX !== undefined ? ptr.downX : px;
+      if (startX < 400 || stick.activePointer === ptr.id) {
+        // Check if pointer is within reach of joystick base (generous area)
+        const distFromBase = Math.sqrt((px - stick.cx) ** 2 + (py - stick.cy) ** 2);
+        if (distFromBase < stick.baseRadius + 60 || stick.activePointer === ptr.id) {
+          stick.activePointer = ptr.id;
+          stickActive = true;
+
+          // Calculate horizontal displacement (we only care about left/right)
+          let rawDx = px - stick.cx;
+          // Clamp to max drag
+          rawDx = Math.max(-stick.maxDrag, Math.min(stick.maxDrag, rawDx));
+
+          // Apply deadzone
+          if (Math.abs(rawDx) < stick.deadzone) {
+            stick.dx = 0;
+          } else {
+            stick.dx = rawDx / stick.maxDrag; // normalize to -1..1
+          }
+
+          // Draw knob at dragged position (clamped)
+          const knobX = stick.cx + rawDx;
+          const knobY = stick.cy; // lock to horizontal axis for a platformer
+          this._drawKnob(knobX, knobY, true);
         }
+      }
+
+      // --- Jump button: right side ---
+      const distFromJump = Math.sqrt((px - jump.cx) ** 2 + (py - jump.cy) ** 2);
+      if (distFromJump < jump.radius) {
+        jumpPressed = true;
       }
     }
 
-    // Update visual feedback
-    for (const btn of this._touchBtns) {
-      const pressed = (btn.key === 'left' && left) || (btn.key === 'right' && right) || (btn.key === 'jump' && jump);
-      this._drawBtn(btn.gfx, btn.x, btn.y, btn.w, btn.h, pressed);
+    // If no pointer is touching the joystick, reset it
+    if (!stickActive) {
+      stick.activePointer = null;
+      stick.dx = 0;
+      this._drawKnob(stick.cx, stick.cy, false);
     }
 
-    this.isTouchingLeft = left;
-    this.isTouchingRight = right;
-    this.isTouchingJump = jump;
+    // Update jump button visual
+    this._drawJumpBtn(jump.cx, jump.cy, 38, jumpPressed);
+
+    // Set the movement flags for the update loop
+    this.isTouchingLeft = stick.dx < -0.15;
+    this.isTouchingRight = stick.dx > 0.15;
+    this.isTouchingJump = jumpPressed;
   }
 
   createPolaroidOverlay() {

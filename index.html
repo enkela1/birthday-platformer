@@ -28,6 +28,11 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      /* Account for notch/dynamic island safe areas so canvas stays centered */
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
     }
     canvas {
       display: block;
