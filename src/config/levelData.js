@@ -120,7 +120,7 @@ export const mustachePickups = [
 export const catPickups = [
   { x: 960, y: 340 },       // Section 2: on a platform
   { x: 3100, y: 330 },      // Section 4: on a platform
-  { x: 4250, y: 160 },      // Section 6: sky platform
+  { x: 4450, y: 240 },      // Section 6: on the third sky platform
 ];
 
 // Laptop pickups - triggers "YOU'VE BEEN HACKED" trap (2 total): { x, y }
