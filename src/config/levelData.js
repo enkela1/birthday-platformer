@@ -70,10 +70,8 @@ export const bouncyPlatforms = [
 // { x, y, width, minX, maxX, speed } — minX/maxX are the CENTER bounds
 export const movingPlatforms = [
   // Gap: ground missing x:2400 to x:2720 (320px). Platform is 110px wide (55 each side).
-  // Left bound: platform left edge at gap center = 2560, so center = 2560+55 = 2615... too far.
-  // Just keep it in the middle-right half of the gap so it never sits over ground.
-  // minX: gap midpoint center = 2560, maxX: right edge minus padding = 2720-55-20 = 2645
-  { x: 2560, y: 480, width: 110, minX: 2560, maxX: 2645, speed: 40 },
+  // minX: 2560, maxX: 2645. Start in the middle of the range.
+  { x: 2602, y: 480, width: 110, minX: 2560, maxX: 2645, speed: 40 },
 ];
 
 // Gift box positions: { x, y, photoIndex }
@@ -86,7 +84,7 @@ export const giftBoxes = [
   { x: 3000, y: 270, photoIndex: 3 },     // Section 4
   { x: 3650, y: 250, photoIndex: 4 },     // Section 5: on the high platform
   { x: 4250, y: 160, photoIndex: 5 },     // Section 6: sky platform
-  { x: 4800, y: 300, photoIndex: 6 },     // Final platform: near trophy
+  { x: 4720, y: 310, photoIndex: 6 },     // Final platform: left side, away from trophy
 ];
 
 // Enemy positions: { x, y, type, patrolDistance }
